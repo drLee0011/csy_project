@@ -14,3 +14,8 @@ output "private_subnet_id" {
 output "ec2_instance_id" {
   value = aws_instance.my_ec2.id
 }
+
+output "instance_public_ip" {
+  description = "The public IP of the EC2 instance"
+  value       = aws_instance.my_ec2.public_ip
+}

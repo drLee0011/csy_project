@@ -1,53 +1,53 @@
-name: Deploy to AWS EC2 with Docker
+# name: Deploy to AWS EC2 with Docker
 
-on:
-  push:
-    branches:
-      - main  # Trigger on pushes to the main branch
+# on:
+#   push:
+#     branches:
+#       - main  # Trigger on pushes to the main branch
 
-jobs:
-  terraform:
-    runs-on: ubuntu-latest
+# jobs:
+#   terraform:
+#     runs-on: ubuntu-latest
 
-    steps:
-      # Checkout code from the repository
-      - name: Checkout code
-        uses: actions/checkout@v2
+#     steps:
+#       # Checkout code from the repository
+#       - name: Checkout code
+#         uses: actions/checkout@v2
 
-      # Set up Terraform
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 1.4.0
+#       # Set up Terraform
+#       - name: Set up Terraform
+#         uses: hashicorp/setup-terraform@v1
+#         with:
+#           terraform_version: 1.4.0
 
-      - name: Configure AWS credentials
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: eu-north-1  # Use the appropriate region
-        run: |
-          terraform init
-          terraform apply -auto-approve  
+#       - name: Configure AWS credentials
+#         env:
+#           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           AWS_DEFAULT_REGION: eu-north-1  # Use the appropriate region
+#         run: |
+#           terraform init
+#           terraform apply -auto-approve  
       
-      # Install Ansible
-      - name: Set up Ansible
-        run: |
-          sudo apt update
-          sudo apt install -y ansible
+#       # Install Ansible
+#       - name: Set up Ansible
+#         run: |
+#           sudo apt update
+#           sudo apt install -y ansible
 
-      # Copy Terraform output (EC2 public IP) to use in Ansible
-      - name: Get EC2 Public IP
-        id: ec2-ip
-        run: |
-          echo "::set-output name=ec2_ip::$(terraform output -raw instance_public_ip)"
+#       # Copy Terraform output (EC2 public IP) to use in Ansible
+#       - name: Get EC2 Public IP
+#         id: ec2-ip
+#         run: |
+#           echo "::set-output name=ec2_ip::$(terraform output -raw instance_public_ip)"
 
-      # Run the Ansible playbook to install Docker and start the container
-      - name: Run Ansible Playbook
-        run: |
-          echo "[aws]" > hosts.ini
-          echo "${{ steps.ec2-ip.outputs.ec2_ip }}" >> hosts.ini
-          echo "[aws:vars]" >> hosts.ini
-          echo "ansible_user=ec2-user" >> hosts.ini  # Change to 'ubuntu' if necessary
-          echo "ansible_ssh_private_key_file=${{ secrets.AWS_SSH_PRIVATE_KEY }}" >> hosts.ini
+#       # Run the Ansible playbook to install Docker and start the container
+#       - name: Run Ansible Playbook
+#         run: |
+#           echo "[aws]" > hosts.ini
+#           echo "${{ steps.ec2-ip.outputs.ec2_ip }}" >> hosts.ini
+#           echo "[aws:vars]" >> hosts.ini
+#           echo "ansible_user=ec2-user" >> hosts.ini  # Change to 'ubuntu' if necessary
+#           echo "ansible_ssh_private_key_file=${{ secrets.AWS_SSH_PRIVATE_KEY }}" >> hosts.ini
           
-          ansible-playbook -i hosts.ini setup-docker.yml
+#           ansible-playbook -i hosts.ini setup-docker.yml
