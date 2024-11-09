@@ -19,18 +19,16 @@ jobs:
         uses: hashicorp/setup-terraform@v1
         with:
           terraform_version: 1.4.0
-
-      # Initialize Terraform
-      - name: Initialize Terraform
-        run: terraform init
-
-      # Plan the Terraform deployment
-      - name: Terraform Plan
-        run: terraform plan
-
-      # Apply Terraform configuration to provision AWS resources
-      - name: Apply Terraform Configuration
-        run: terraform apply -auto-approve
+        
+      - name: Configure AWS credentials
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: eu-north-1  # Use the appropriate region
+        run: |
+          terraform init
+          terraform plan
+          terraform apply -auto-approve  
 
   ansible:
     needs: terraform  # Ensure this job runs after the Terraform job
