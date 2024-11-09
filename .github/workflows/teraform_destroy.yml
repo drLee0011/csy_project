@@ -1,7 +1,10 @@
 name: Terraform Destroy
 
 on:
-  workflow_dispatch:  # This triggers the workflow manually via GitHub UI
+  #workflow_dispatch:  # This triggers the workflow manually via GitHub UI
+  push:
+    branches:
+     - main  # Trigger on pushes to the main branch
 
 jobs:
   destroy:
@@ -18,7 +21,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-1  # Set your region here
+          AWS_DEFAULT_REGION: eu-north-1  # Set your region here
         run: |
           terraform init
           terraform destroy -auto-approve
