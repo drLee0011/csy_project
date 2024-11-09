@@ -27,17 +27,17 @@ jobs:
           AWS_DEFAULT_REGION: eu-north-1  # Use the appropriate region
         run: |
           terraform init
-          terraform plan
+         # terraform plan
           terraform apply -auto-approve  
 
-  ansible:
-    needs: terraform  # Ensure this job runs after the Terraform job
-    runs-on: ubuntu-latest
+  # ansible:
+  #   needs: terraform  # Ensure this job runs after the Terraform job
+  #   runs-on: ubuntu-latest
 
-    steps:
-      # Checkout code from the repository
-      - name: Checkout code
-        uses: actions/checkout@v2
+  #   steps:
+  #     # Checkout code from the repository
+  #     - name: Checkout code
+  #       uses: actions/checkout@v2
 
       # Install Ansible
       - name: Set up Ansible
