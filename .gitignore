@@ -1,0 +1,30 @@
+.terraform*
+terraform*
+# Ignore Terraform state files
+*.tfstate
+.tfstate.
+
+# Ignore crash logs
+crash.log
+
+# Ignore Terraform plan files
+*.tfplan
+
+# Ignore override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore .terraform directory, which contains provider plugins and modules
+.terraform/
+
+# Ignore terraform.tfvars and tfvars files (optional, only if you don't want them in git)
+terraform.tfvars
+*.tfvars
+
+# Ignore .terraform.lock.hcl file, which locks provider versions (optional)
+.terraform.lock.hcl
+
+
+terrform_kp.pem
