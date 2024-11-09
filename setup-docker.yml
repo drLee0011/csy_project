@@ -1,53 +1,75 @@
-# setup-docker.yml
-
 ---
-- name: Setup Docker on EC2 instance
+- name: Set up Docker on EC2 instance
   hosts: aws
   become: yes
   tasks:
-    - name: Update the apt cache
-      apt:
-        update_cache: yes
-
-    - name: Install required dependencies
-      apt:
-        name:
-          - apt-transport-https
-          - ca-certificates
-          - curl
-          - software-properties-common
-        state: present
-
-    - name: Add Docker GPG key
-      apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
-
-    - name: Add Docker repository
-      apt_repository:
-        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable
-        state: present
-
     - name: Install Docker
-      apt:
-        name: docker-ce
-        state: latest
+      ansible.builtin.yum:
+        name: docker
+        state: present
 
     - name: Start Docker service
-      service:
+      ansible.builtin.service:
         name: docker
         state: started
         enabled: yes
 
-    - name: Pull Docker image (Nginx)
-      docker_image:
-        name: nginx
-        source: pull
-
-    - name: Run Docker container
-      docker_container:
-        name: webserver
-        image: nginx
+    - name: Run a Docker container (example)
+      ansible.builtin.docker_container:
+        name: my_app
+        image: nginx:latest
         state: started
-        ports:
-          - "80:80"
+        restart_policy: always
+# # setup-docker.yml
+
+# ---
+# - name: Setup Docker on EC2 instance
+#   hosts: aws
+#   become: yes
+#   tasks:
+#     - name: Update the apt cache
+#       apt:
+#         update_cache: yes
+
+#     - name: Install required dependencies
+#       apt:
+#         name:
+#           - apt-transport-https
+#           - ca-certificates
+#           - curl
+#           - software-properties-common
+#         state: present
+
+#     - name: Add Docker GPG key
+#       apt_key:
+#         url: https://download.docker.com/linux/ubuntu/gpg
+#         state: present
+
+#     - name: Add Docker repository
+#       apt_repository:
+#         repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable
+#         state: present
+
+#     - name: Install Docker
+#       apt:
+#         name: docker-ce
+#         state: latest
+
+#     - name: Start Docker service
+#       service:
+#         name: docker
+#         state: started
+#         enabled: yes
+
+#     - name: Pull Docker image (Nginx)
+#       docker_image:
+#         name: nginx
+#         source: pull
+
+#     - name: Run Docker container
+#       docker_container:
+#         name: webserver
+#         image: nginx
+#         state: started
+#         ports:
+#           - "80:80"
