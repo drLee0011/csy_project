@@ -29,6 +29,9 @@ jobs:
         run: |
           terraform init
           terraform apply -auto-approve  # Create infrastructure
+      - name: Debug Terraform output
+        run: |
+          terraform output -raw instance_public_ip          
 
       # Install Ansible
       - name: Set up Ansible
