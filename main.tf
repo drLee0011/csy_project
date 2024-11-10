@@ -7,7 +7,7 @@ data "aws_vpc" "main" {
 # Public Subnet in the VPC
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = data.aws_vpc.main.id
-  cidr_block              = "172.31.0.0/24"  # Valid subnet range
+  cidr_block              = "172.31.10.0/24"  # Adjusted to avoid conflict
   availability_zone       = "eu-north-1a"
   map_public_ip_on_launch = true
   tags = {
@@ -18,7 +18,7 @@ resource "aws_subnet" "public_subnet" {
 # Private Subnet in the VPC
 resource "aws_subnet" "private_subnet" {
   vpc_id                  = data.aws_vpc.main.id
-  cidr_block              = "172.31.1.0/24"  # Valid subnet range
+  cidr_block              = "172.31.20.0/24"  # Adjusted to avoid conflict
   availability_zone       = "eu-north-1a"
   tags = {
     Name = "PrivateSubnet"
