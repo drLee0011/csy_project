@@ -1,72 +1,93 @@
 name: Terraform CI/CD Pipeline
 
-on:
-  push:
-    branches:
+trigger:
+  branches:
+    include:
       - main  # Trigger on pushes to the main branch
 
-jobs:
-  terraform:
-    runs-on: ubuntu-latest
+stages:
+  - stage: Terraform
+    jobs:
+      - job: Terraform
+        pool:
+          vmImage: 'ubuntu-latest'
 
-    steps:
-      # Checkout code from the repository
-      - name: Checkout code
-        uses: actions/checkout@v2
+        steps:
+          # Checkout code from the repository
+          - checkout: self
 
-      # Set up Terraform
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 1.4.0
+          # Install Terraform manually
+          - task: Bash@3
+            displayName: 'Install Terraform'
+            inputs:
+              targetType: 'inline'
+              script: |
+                sudo apt-get update -y
+                sudo apt-get install -y wget unzip
+                wget https://releases.hashicorp.com/terraform/1.4.0/terraform_1.4.0_linux_amd64.zip
+                unzip terraform_1.4.0_linux_amd64.zip
+                sudo mv terraform /usr/local/bin/
+                terraform -version  # Verify the installation
 
-      # Configure AWS credentials
-      - name: Configure AWS credentials
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: eu-north-1  # Specify the correct region
-        run: |
-          terraform init
-          terraform apply -auto-approve  # Create infrastructure
-      - name: Debug Terraform output
-        run: |
-          terraform output -raw instance_public_ip          
+          # Configure AWS credentials and initialize/apply Terraform
+          - task: Bash@3
+            displayName: 'Initialize and apply Terraform'
+            inputs:
+              targetType: 'inline'
+              script: |
+                export AWS_ACCESS_KEY_ID=$(AWS_ACCESS_KEY_ID)
+                export AWS_SECRET_ACCESS_KEY=$(AWS_SECRET_ACCESS_KEY)
+                export AWS_DEFAULT_REGION=eu-north-1
+                
+                terraform init
+                terraform apply -auto-approve
 
-      # Install Ansible
-      - name: Set up Ansible
-        run: |
-          sudo apt update
-          sudo apt install -y ansible
+          # Capture Terraform output (EC2 public IP) to use in Ansible
+          - task: Bash@3
+            displayName: 'Get EC2 Public IP from Terraform Output'
+            inputs:
+              targetType: 'inline'
+              script: |
+                EC2_PUBLIC_IP=$(terraform output -raw instance_public_ip)
+                echo "##vso[task.setvariable variable=EC2_PUBLIC_IP]$EC2_PUBLIC_IP"
 
-      # Capture Terraform output (EC2 public IP) to use in Ansible
-      - name: Get EC2 Public IP from Terraform Output
-        id: ec2-ip
-        run: |
-          # Get the public IP from Terraform output and set it as an environment variable
-          EC2_PUBLIC_IP=$(terraform output -raw instance_public_ip)
-          echo "EC2_PUBLIC_IP=${EC2_PUBLIC_IP}" >> $GITHUB_ENV
-          echo "EC2_PUBLIC_IP is: ${EC2_PUBLIC_IP}"  # Display the IP for debugging
+          # Install Ansible
+          - task: Bash@3
+            displayName: 'Install Ansible'
+            inputs:
+              targetType: 'inline'
+              script: |
+                sudo apt update
+                sudo apt install -y ansible
 
-      # Run the Ansible playbook to install Docker and start the container
-      - name: Run Ansible Playbook
-        run: |
-          echo "[aws]" > hosts.ini
-          echo "${{ env.EC2_PUBLIC_IP }}" >> hosts.ini  # Use EC2 public IP
-          echo "[aws:vars]" >> hosts.ini
-          echo "ansible_user=ec2-user" >> hosts.ini  # Or 'ubuntu' depending on the AMI
-          echo "ansible_ssh_private_key_file=${{ secrets.AWS_SSH_PRIVATE_KEY }}" >> hosts.ini
-          
-          ansible-playbook -i hosts.ini setup-docker.yml  # Ensure you have this playbook defined
+          # Run the Ansible playbook to install Docker and start the container
+          - task: Bash@3
+            displayName: 'Run Ansible Playbook'
+            inputs:
+              targetType: 'inline'
+              script: |
+                echo "[aws]" > hosts.ini
+                echo "$(EC2_PUBLIC_IP)" >> hosts.ini  # Use EC2 public IP
+                echo "[aws:vars]" >> hosts.ini
+                echo "ansible_user=ec2-user" >> hosts.ini  # Or 'ubuntu' depending on the AMI
+                echo "ansible_ssh_private_key_file=/path/to/your/ssh/key.pem" >> hosts.ini
+                
+                ansible-playbook -i hosts.ini setup-docker.yml
 
-      # Wait for 5 minutes before destroying the infrastructure
-      - name: Wait for 6 minutes before destroying the infrastructure
-        run: |
-          echo "Waiting for 6 minutes before destroying the infrastructure..."
-          sleep 360  # Sleep for 300 seconds (5 minutes)
+          # Wait for 6 minutes before destroying the infrastructure
+          - task: Bash@3
+            displayName: 'Wait for 6 minutes'
+            inputs:
+              targetType: 'inline'
+              script: |
+                echo "Waiting for 6 minutes before destroying the infrastructure..."
+                sleep 360
 
-      # Destroy infrastructure after 5-minute wait
-      - name: Destroy infrastructure
-        run: |
-          echo "Destroying infrastructure..."
-          terraform destroy -auto-approve  # Automatically destroy the infrastructure
+          # Destroy infrastructure
+          - task: Bash@3
+            displayName: 'Destroy Infrastructure'
+            inputs:
+              targetType: 'inline'
+              script: |
+                echo "Destroying infrastructure..."
+                terraform destroy -auto-approve
