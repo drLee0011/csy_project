@@ -1,6 +1,6 @@
-# Data resource to reference an existing VPC
+# Data resource to reference the default VPC
 data "aws_vpc" "main" {
-  id = "vpc-0305c06746da14a3f"  # Replace with your existing VPC ID
+  id = "vpc-0fbaa0fc156ca7a9d"  # Replace with the default VPC ID you found
 }
 
 # Check if an Internet Gateway exists in the VPC by using a data source
