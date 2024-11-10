@@ -1,4 +1,3 @@
-
 # Data resource to reference an existing VPC
 data "aws_vpc" "main" {
   id = "vpc-0fbaa0fc156ca7a9d"  # Replace with your VPC ID
@@ -15,8 +14,8 @@ data "aws_internet_gateway" "existing_gw" {
 # Create a Public Subnet
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = data.aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"  # CIDR block for the public subnet
-  availability_zone       = "eu-north-1a"    # Specify availability zone
+  cidr_block              = "10.0.0.0/24"  # Adjusted CIDR block within VPC range
+  availability_zone       = "eu-north-1a"
   map_public_ip_on_launch = true
   tags = {
     Name = "PublicSubnet"
@@ -26,8 +25,8 @@ resource "aws_subnet" "public_subnet" {
 # Create a Private Subnet
 resource "aws_subnet" "private_subnet" {
   vpc_id                  = data.aws_vpc.main.id
-  cidr_block              = "10.0.2.0/24"  # CIDR block for the private subnet
-  availability_zone       = "eu-north-1a"    # Specify availability zone
+  cidr_block              = "10.0.1.0/24"  # Adjusted CIDR block within VPC range
+  availability_zone       = "eu-north-1a"
   tags = {
     Name = "PrivateSubnet"
   }
