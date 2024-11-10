@@ -1,47 +1,53 @@
-# Data source to reference the default VPC
-data "aws_vpc" "default" {
-  default = true
+# Create a VPC
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+  enable_dns_support = true
+  enable_dns_hostnames = true
+  tags = {
+    Name = "csy_vpc"
+  }
 }
 
-# Create a Public Subnet in the Default VPC
+# Create a Public Subnet
 resource "aws_subnet" "public_subnet" {
-  vpc_id                  = data.aws_vpc.default.id  # Referencing the default VPC
-  cidr_block              = "10.0.1.0/24"  # CIDR block for the public subnet
-  availability_zone       = "eu-north-1a"    # Specify availability zone
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"  # Ensure no CIDR conflict
+  availability_zone       = "eu-north-1a"
   map_public_ip_on_launch = true
   tags = {
     Name = "PublicSubnet"
   }
 }
 
-# Create a Private Subnet in the Default VPC
+# Create a Private Subnet
 resource "aws_subnet" "private_subnet" {
-  vpc_id                  = data.aws_vpc.default.id  # Referencing the default VPC
-  cidr_block              = "10.0.2.0/24"  # CIDR block for the private subnet
-  availability_zone       = "eu-north-1a"    # Specify availability zone
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.2.0/24"  # Ensure no CIDR conflict
+  availability_zone       = "eu-north-1a"
   tags = {
     Name = "PrivateSubnet"
   }
 }
 
-# Create an Internet Gateway in the Default VPC
+# Create an Internet Gateway (Skip if IGW exists)
 resource "aws_internet_gateway" "gw" {
-  vpc_id = data.aws_vpc.default.id  # Referencing the default VPC
+  vpc_id = aws_vpc.main.id
   tags = {
     Name = "MainInternetGateway"
   }
+  count = length(data.aws_vpc.main.internet_gateway_ids) == 0 ? 1 : 0
 }
 
-# Create a NAT Gateway in the Public Subnet, using the existing Elastic IP
+# Create NAT Gateway in the Public Subnet
 resource "aws_nat_gateway" "nat_gw" {
-  allocation_id = "eipalloc-0f31490b059b9694f"  # Use your existing Elastic IP's allocation ID
+  allocation_id = "eipalloc-0f31490b059b9694f"  # Use your existing Elastic IP allocation ID
   subnet_id     = aws_subnet.public_subnet.id
-  depends_on    = [aws_internet_gateway.gw]  # Ensure the IGW is created before the NAT Gateway
+  depends_on    = [aws_internet_gateway.gw]  # Ensure IGW is created first
 }
 
 # Create Route Table for Public Subnet
 resource "aws_route_table" "public_rt" {
-  vpc_id = data.aws_vpc.default.id  # Referencing the default VPC
+  vpc_id = aws_vpc.main.id
 
   route {
     cidr_block = "0.0.0.0/0"
@@ -61,7 +67,7 @@ resource "aws_route_table_association" "public_association" {
 
 # Create Route Table for Private Subnet
 resource "aws_route_table" "private_rt" {
-  vpc_id = data.aws_vpc.default.id  # Referencing the default VPC
+  vpc_id = aws_vpc.main.id
 
   route {
     cidr_block     = "0.0.0.0/0"
@@ -81,7 +87,7 @@ resource "aws_route_table_association" "private_association" {
 
 # Security Group to Allow HTTP/HTTPS and SSH
 resource "aws_security_group" "allow_http_https_ssh" {
-  vpc_id = data.aws_vpc.default.id  # Referencing the default VPC
+  vpc_id = aws_vpc.main.id
 
   ingress {
     from_port   = 22
