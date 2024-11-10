@@ -1,8 +1,10 @@
 
+# Retrieve the existing VPC
 data "aws_vpc" "main" {
   id = "vpc-0fbaa0fc156ca7a9d"  # Replace with your VPC ID
 }
 
+# Public Subnet in the VPC
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = data.aws_vpc.main.id
   cidr_block              = "172.31.0.0/24"  # Valid subnet range
@@ -13,6 +15,7 @@ resource "aws_subnet" "public_subnet" {
   }
 }
 
+# Private Subnet in the VPC
 resource "aws_subnet" "private_subnet" {
   vpc_id                  = data.aws_vpc.main.id
   cidr_block              = "172.31.1.0/24"  # Valid subnet range
@@ -21,21 +24,23 @@ resource "aws_subnet" "private_subnet" {
     Name = "PrivateSubnet"
   }
 }
-# Create an Internet Gateway if not already existing
-resource "aws_internet_gateway" "gw" {
-  count = data.aws_internet_gateway.existing_gw.id == "" ? 1 : 0
-  vpc_id = data.aws_vpc.main.id
 
-  tags = {
-    Name = "MainInternetGateway"
-  }
+# Check if an existing Internet Gateway exists in the VPC
+data "aws_internet_gateway" "existing_gw" {
+  vpc_id = data.aws_vpc.main.id
+}
+
+# Create a new Internet Gateway if none exists
+resource "aws_internet_gateway" "gw" {
+  count   = length(data.aws_internet_gateway.existing_gw.id) == 0 ? 1 : 0
+  vpc_id  = data.aws_vpc.main.id
 }
 
 # Create NAT Gateway in the Public Subnet, using an existing Elastic IP
 resource "aws_nat_gateway" "nat_gw" {
   allocation_id = "eipalloc-0f31490b059b9694f"  # Replace with your Elastic IP allocation ID
   subnet_id     = aws_subnet.public_subnet.id
-  depends_on    = [aws_internet_gateway.gw]
+  depends_on    = [aws_internet_gateway.gw]  # Ensure IGW is created first
 }
 
 # Public Route Table with IGW
@@ -44,7 +49,7 @@ resource "aws_route_table" "public_rt" {
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = data.aws_internet_gateway.existing_gw.id != "" ? data.aws_internet_gateway.existing_gw.id : aws_internet_gateway.gw[0].id
+    gateway_id = length(data.aws_internet_gateway.existing_gw.id) == 0 ? aws_internet_gateway.gw[0].id : data.aws_internet_gateway.existing_gw.id
   }
 
   tags = {
