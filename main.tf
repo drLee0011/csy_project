@@ -1,23 +1,14 @@
-# Data resource to reference the default VPC
+
+# Data resource to reference an existing VPC
 data "aws_vpc" "main" {
-  id = "vpc-0fbaa0fc156ca7a9d"  # Replace with the default VPC ID you found
+  id = "vpc-0fbaa0fc156ca7a9d"  # Replace with your VPC ID
 }
 
-# Check if an Internet Gateway exists in the VPC by using a data source
-data "aws_internet_gateway" "existing_igw" {
+# Check for an existing Internet Gateway
+data "aws_internet_gateway" "existing_gw" {
   filter {
     name   = "attachment.vpc-id"
     values = [data.aws_vpc.main.id]
-  }
-}
-
-# Create an Internet Gateway only if one doesn't already exist
-resource "aws_internet_gateway" "gw" {
-  vpc_id = data.aws_vpc.main.id
-  count  = data.aws_internet_gateway.existing_igw.id == "" ? 1 : 0
-
-  tags = {
-    Name = "MainInternetGateway"
   }
 }
 
@@ -25,7 +16,7 @@ resource "aws_internet_gateway" "gw" {
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = data.aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"  # CIDR block for the public subnet
-  availability_zone       = "eu-north-1a"  # Specify availability zone
+  availability_zone       = "eu-north-1a"    # Specify availability zone
   map_public_ip_on_launch = true
   tags = {
     Name = "PublicSubnet"
@@ -36,26 +27,36 @@ resource "aws_subnet" "public_subnet" {
 resource "aws_subnet" "private_subnet" {
   vpc_id                  = data.aws_vpc.main.id
   cidr_block              = "10.0.2.0/24"  # CIDR block for the private subnet
-  availability_zone       = "eu-north-1a"  # Specify availability zone
+  availability_zone       = "eu-north-1a"    # Specify availability zone
   tags = {
     Name = "PrivateSubnet"
   }
 }
 
-# Create a NAT Gateway in the Public Subnet, using the existing Elastic IP
-resource "aws_nat_gateway" "nat_gw" {
-  allocation_id = "eipalloc-0f31490b059b9694f"  # Use your existing Elastic IP's allocation ID
-  subnet_id     = aws_subnet.public_subnet.id
-  depends_on    = [aws_internet_gateway.gw]  # Ensure the IGW is created before the NAT Gateway
+# Create an Internet Gateway if not already existing
+resource "aws_internet_gateway" "gw" {
+  count = length(data.aws_internet_gateway.existing_gw.ids) == 0 ? 1 : 0
+  vpc_id = data.aws_vpc.main.id
+
+  tags = {
+    Name = "MainInternetGateway"
+  }
 }
 
-# Create Route Table for Public Subnet
+# Create NAT Gateway in the Public Subnet, using an existing Elastic IP
+resource "aws_nat_gateway" "nat_gw" {
+  allocation_id = "eipalloc-0f31490b059b9694f"  # Replace with your Elastic IP allocation ID
+  subnet_id     = aws_subnet.public_subnet.id
+  depends_on    = [aws_internet_gateway.gw]
+}
+
+# Public Route Table with IGW
 resource "aws_route_table" "public_rt" {
   vpc_id = data.aws_vpc.main.id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw[0].id
+    gateway_id = length(data.aws_internet_gateway.existing_gw.ids) > 0 ? data.aws_internet_gateway.existing_gw.id : aws_internet_gateway.gw[0].id
   }
 
   tags = {
@@ -63,13 +64,13 @@ resource "aws_route_table" "public_rt" {
   }
 }
 
-# Associate the Public Route Table with the Public Subnet
+# Associate Public Route Table with the Public Subnet
 resource "aws_route_table_association" "public_association" {
   subnet_id      = aws_subnet.public_subnet.id
   route_table_id = aws_route_table.public_rt.id
 }
 
-# Create Route Table for Private Subnet
+# Private Route Table with NAT Gateway
 resource "aws_route_table" "private_rt" {
   vpc_id = data.aws_vpc.main.id
 
@@ -83,13 +84,13 @@ resource "aws_route_table" "private_rt" {
   }
 }
 
-# Associate the Private Route Table with the Private Subnet
+# Associate Private Route Table with Private Subnet
 resource "aws_route_table_association" "private_association" {
   subnet_id      = aws_subnet.private_subnet.id
   route_table_id = aws_route_table.private_rt.id
 }
 
-# Security Group to Allow HTTP/HTTPS and SSH
+# Security Group allowing HTTP, HTTPS, and SSH
 resource "aws_security_group" "allow_http_https_ssh" {
   vpc_id = data.aws_vpc.main.id
 
@@ -126,9 +127,9 @@ resource "aws_security_group" "allow_http_https_ssh" {
   }
 }
 
-# Launch an EC2 instance in the Public Subnet
+# Launch EC2 instance in Public Subnet
 resource "aws_instance" "my_ec2" {
-  ami           = "ami-08eb150f611ca277f"  # Replace with the latest Amazon Linux 2 AMI ID for your region
+  ami           = "ami-08eb150f611ca277f"  # Replace with Amazon Linux 2 AMI for your region
   instance_type = "t3.micro"
   subnet_id     = aws_subnet.public_subnet.id
   vpc_security_group_ids = [aws_security_group.allow_http_https_ssh.id]
