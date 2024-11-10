@@ -26,7 +26,7 @@ resource "aws_subnet" "private_subnet" {
 }
 
 # Check if an existing Internet Gateway exists for the given VPC
-data "aws_internet_gateways" "existing_gw" {
+data "aws_internet_gateway" "existing_gw" {
   filter {
     name   = "attachment.vpc-id"
     values = [data.aws_vpc.main.id]
@@ -35,7 +35,7 @@ data "aws_internet_gateways" "existing_gw" {
 
 # Create a new Internet Gateway if none exists
 resource "aws_internet_gateway" "gw" {
-  count   = length(data.aws_internet_gateways.existing_gw.ids) == 0 ? 1 : 0
+  count   = length(data.aws_internet_gateway.existing_gw.ids) == 0 ? 1 : 0
   vpc_id  = data.aws_vpc.main.id
 }
 
@@ -52,7 +52,7 @@ resource "aws_route_table" "public_rt" {
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = length(data.aws_internet_gateway.existing_gw.id) == 0 ? aws_internet_gateway.gw[0].id : data.aws_internet_gateway.existing_gw.id
+    gateway_id = length(data.aws_internet_gateway.existing_gw.ids) == 0 ? aws_internet_gateway.gw[0].id : data.aws_internet_gateway.existing_gw.ids[0]
   }
 
   tags = {
