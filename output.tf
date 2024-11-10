@@ -1,6 +1,7 @@
-# Output the VPC ID, Subnet IDs, and EC2 Instance ID
+# outputs.tf
+
 output "vpc_id" {
-  value = aws_vpc.main.id
+  value = data.aws_vpc.default.id
 }
 
 output "public_subnet_id" {
