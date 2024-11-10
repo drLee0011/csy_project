@@ -25,14 +25,17 @@ resource "aws_subnet" "private_subnet" {
   }
 }
 
-# Check if an existing Internet Gateway exists in the VPC
-data "aws_internet_gateway" "existing_gw" {
-  vpc_id = data.aws_vpc.main.id
+# Check if an existing Internet Gateway exists for the given VPC
+data "aws_internet_gateways" "existing_gw" {
+  filter {
+    name   = "attachment.vpc-id"
+    values = [data.aws_vpc.main.id]
+  }
 }
 
 # Create a new Internet Gateway if none exists
 resource "aws_internet_gateway" "gw" {
-  count   = length(data.aws_internet_gateway.existing_gw.id) == 0 ? 1 : 0
+  count   = length(data.aws_internet_gateways.existing_gw.ids) == 0 ? 1 : 0
   vpc_id  = data.aws_vpc.main.id
 }
 
