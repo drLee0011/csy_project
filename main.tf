@@ -37,9 +37,10 @@ resource "aws_internet_gateway" "gw" {
   }
 }
 
-# Create an Elastic IP for the NAT Gateway
+# Use an Existing Elastic IP for the NAT Gateway
 resource "aws_eip" "nat_eip" {
-  vpc = true
+  vpc           = true
+  allocation_id = "eipalloc-0f31490b059b9694f"  # Replace with your actual Allocation ID
 }
 
 # Create a NAT Gateway in the Public Subnet
