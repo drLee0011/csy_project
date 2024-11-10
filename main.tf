@@ -1,16 +1,11 @@
-# Create a VPC
-resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"  # CIDR block for the VPC
-  enable_dns_support = true
-  enable_dns_hostnames = true
-  tags = {
-    Name = "csy_vpc"
-  }
+# Data source to reference the default VPC
+data "aws_vpc" "default" {
+  default = true
 }
 
-# Create a Public Subnet
+# Create a Public Subnet in the Default VPC
 resource "aws_subnet" "public_subnet" {
-  vpc_id                  = aws_vpc.main.id
+  vpc_id                  = data.aws_vpc.default.id  # Referencing the default VPC
   cidr_block              = "10.0.1.0/24"  # CIDR block for the public subnet
   availability_zone       = "eu-north-1a"    # Specify availability zone
   map_public_ip_on_launch = true
@@ -19,9 +14,9 @@ resource "aws_subnet" "public_subnet" {
   }
 }
 
-# Create a Private Subnet
+# Create a Private Subnet in the Default VPC
 resource "aws_subnet" "private_subnet" {
-  vpc_id                  = aws_vpc.main.id
+  vpc_id                  = data.aws_vpc.default.id  # Referencing the default VPC
   cidr_block              = "10.0.2.0/24"  # CIDR block for the private subnet
   availability_zone       = "eu-north-1a"    # Specify availability zone
   tags = {
@@ -29,9 +24,9 @@ resource "aws_subnet" "private_subnet" {
   }
 }
 
-# Create an Internet Gateway
+# Create an Internet Gateway in the Default VPC
 resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.main.id
+  vpc_id = data.aws_vpc.default.id  # Referencing the default VPC
   tags = {
     Name = "MainInternetGateway"
   }
@@ -46,7 +41,7 @@ resource "aws_nat_gateway" "nat_gw" {
 
 # Create Route Table for Public Subnet
 resource "aws_route_table" "public_rt" {
-  vpc_id = aws_vpc.main.id
+  vpc_id = data.aws_vpc.default.id  # Referencing the default VPC
 
   route {
     cidr_block = "0.0.0.0/0"
@@ -66,7 +61,7 @@ resource "aws_route_table_association" "public_association" {
 
 # Create Route Table for Private Subnet
 resource "aws_route_table" "private_rt" {
-  vpc_id = aws_vpc.main.id
+  vpc_id = data.aws_vpc.default.id  # Referencing the default VPC
 
   route {
     cidr_block     = "0.0.0.0/0"
@@ -86,7 +81,7 @@ resource "aws_route_table_association" "private_association" {
 
 # Security Group to Allow HTTP/HTTPS and SSH
 resource "aws_security_group" "allow_http_https_ssh" {
-  vpc_id = aws_vpc.main.id
+  vpc_id = data.aws_vpc.default.id  # Referencing the default VPC
 
   ingress {
     from_port   = 22
@@ -132,4 +127,3 @@ resource "aws_instance" "my_ec2" {
     Name = "csy_instance"
   }
 }
-
