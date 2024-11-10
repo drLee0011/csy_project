@@ -1,15 +1,31 @@
-# main.tf
-
 # Data resource to reference an existing VPC
 data "aws_vpc" "main" {
   id = "vpc-0305c06746da14a3f"  # Replace with your existing VPC ID
+}
+
+# Check if an Internet Gateway exists in the VPC by using a data source
+data "aws_internet_gateway" "existing_igw" {
+  filter {
+    name   = "attachment.vpc-id"
+    values = [data.aws_vpc.main.id]
+  }
+}
+
+# Create an Internet Gateway only if one doesn't already exist
+resource "aws_internet_gateway" "gw" {
+  vpc_id = data.aws_vpc.main.id
+  count  = data.aws_internet_gateway.existing_igw.id == "" ? 1 : 0
+
+  tags = {
+    Name = "MainInternetGateway"
+  }
 }
 
 # Create a Public Subnet
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = data.aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"  # CIDR block for the public subnet
-  availability_zone       = "eu-north-1a"    # Specify availability zone
+  availability_zone       = "eu-north-1a"  # Specify availability zone
   map_public_ip_on_launch = true
   tags = {
     Name = "PublicSubnet"
@@ -20,19 +36,9 @@ resource "aws_subnet" "public_subnet" {
 resource "aws_subnet" "private_subnet" {
   vpc_id                  = data.aws_vpc.main.id
   cidr_block              = "10.0.2.0/24"  # CIDR block for the private subnet
-  availability_zone       = "eu-north-1a"    # Specify availability zone
+  availability_zone       = "eu-north-1a"  # Specify availability zone
   tags = {
     Name = "PrivateSubnet"
-  }
-}
-
-# Create an Internet Gateway
-resource "aws_internet_gateway" "gw" {
-  vpc_id = data.aws_vpc.main.id
-  count  = length(data.aws_vpc.main.internet_gateway_ids) == 0 ? 1 : 0
-
-  tags = {
-    Name = "MainInternetGateway"
   }
 }
 
@@ -49,7 +55,7 @@ resource "aws_route_table" "public_rt" {
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw.id
+    gateway_id = aws_internet_gateway.gw[0].id
   }
 
   tags = {
