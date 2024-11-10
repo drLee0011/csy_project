@@ -1,20 +1,11 @@
-# Data resource to reference an existing VPC
+
 data "aws_vpc" "main" {
   id = "vpc-0fbaa0fc156ca7a9d"  # Replace with your VPC ID
 }
 
-# Check for an existing Internet Gateway
-data "aws_internet_gateway" "existing_gw" {
-  filter {
-    name   = "attachment.vpc-id"
-    values = [data.aws_vpc.main.id]
-  }
-}
-
-# Create a Public Subnet
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = data.aws_vpc.main.id
-  cidr_block              = "10.0.0.0/24"  # Adjusted CIDR block within VPC range
+  cidr_block              = "172.31.0.0/24"  # Valid subnet range
   availability_zone       = "eu-north-1a"
   map_public_ip_on_launch = true
   tags = {
@@ -22,16 +13,14 @@ resource "aws_subnet" "public_subnet" {
   }
 }
 
-# Create a Private Subnet
 resource "aws_subnet" "private_subnet" {
   vpc_id                  = data.aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"  # Adjusted CIDR block within VPC range
+  cidr_block              = "172.31.1.0/24"  # Valid subnet range
   availability_zone       = "eu-north-1a"
   tags = {
     Name = "PrivateSubnet"
   }
 }
-
 # Create an Internet Gateway if not already existing
 resource "aws_internet_gateway" "gw" {
   count = data.aws_internet_gateway.existing_gw.id == "" ? 1 : 0
